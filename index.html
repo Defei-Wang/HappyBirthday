@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Happy Birthyear Zari</title>
+<style>
+  html, body { 
+    margin: 0; 
+    padding: 0; 
+    overflow: hidden; 
+    background: #050508; 
+    font-family: 'Times New Roman', serif;
+  }
+  canvas { display: block; }
+  
+  #letter-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -40%);
+    width: 85%;
+    max-width: 650px;
+    background: rgba(10, 10, 15, 0.65);
+    backdrop-filter: blur(8px); 
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 40px 50px;
+    color: rgba(255, 255, 255, 0.95);
+    line-height: 1.8;
+    font-size: 17px;
+    text-align: left;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+    z-index: 9999; 
+    
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 3s ease-in-out, transform 3s ease-out;
+  }
+  
+  #letter-box.visible {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+  }
+
+  #letter-box p { margin-bottom: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+  #letter-box .greeting {
+    font-family: 'Cooper Black', serif;
+    font-size: 28px;
+    color: #ffd7dd;
+    margin-bottom: 25px;
+  }
+  .signature {
+    text-align: right;
+    font-family: 'Cooper Black', serif;
+    font-size: 20px;
+    color: #ffcad4;
+    margin-top: 30px;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div id="letter-box">
+  <div class="greeting">Zari,</div>
+  <p>2026 has been a maze, from the chaos and the haze to those long, silent days. I’m just glad we made it through the blackout—it reminded me that as long as I can still find you on the other end of the screen, the rest of the world is just background noise.</p>
+  <p>Stop with the 'am I boring' or 'sorry for being annoying' bullshit. If you were boring, we wouldn't have filled a whole library with our chats. To me, you are the most 'real' person in a world that’s currently falling apart. Between your sharp mind and the art you create, you offer a grounding reality that a thousand chaotic days can't distort.</p>
+  <p>I know the weight of the world—and the voices around you that expect too much—can feel like a lot to carry right now. But you’re doing just fine. Even when you’re tired, even when you’re stressed, you’re still the same sharp, honest, and irreplaceable person I’m lucky to know.</p>
+  <p>Be kind to yourself, catch some sleep, and remember you’re far more precious than you give yourself credit for. Happy birthyear, my favorite nigga.</p>
+  <div class="signature">— Difei</div>
+</div>
+
+<script>
+/* ======================= 八音盒音频引擎 ======================= */
+let candlesLit = false, audioStarted = false;
+let ctxAudio; 
+
+const hz = {
+  F2: 87.3, C3: 130.8, F3: 174.6, G3: 196.0, A3: 220.0, Bb3: 233.1,
+  C4: 261.6, D4: 293.7, E4: 329.6, F4: 349.2, G4: 392.0, A4: 440.0, Bb4: 466.2, B4: 493.9,
+  C5: 523.3, D5: 587.3, E5: 659.3, F5: 698.5, G5: 784.0, A5: 880.0, Bb5: 932.3, C6: 1046.5
+};
+
+const melody = [
+  [hz.C5, 0, 0.75], [hz.C5, 0.75, 0.25], 
+  [hz.D5, 1, 1],    [hz.C5, 2, 1],    [hz.F5, 3, 1], 
+  [hz.E5, 4, 2], 
+  [hz.C5, 6, 0.75], [hz.C5, 6.75, 0.25], 
+  [hz.D5, 7, 1],    [hz.C5, 8, 1],    [hz.G5, 9, 1], 
+  [hz.F5, 10, 2], 
+  [hz.C5, 12, 0.75], [hz.C5, 12.75, 0.25], 
+  [hz.C6, 13, 1],   [hz.A5, 14, 1],   [hz.F5, 15, 1], 
+  [hz.E5, 16, 1],   [hz.D5, 17, 1], 
+  [hz.Bb5, 18, 0.75], [hz.Bb5, 18.75, 0.25], 
+  [hz.A5, 19, 1],   [hz.F5, 20, 1],   [hz.G5, 21, 1], 
+  [hz.F5, 22, 3] 
+];
+
+const chords = [
+  [[hz.F3, hz.C4, hz.F4], 1],
+  [[hz.C3, hz.G3, hz.E4], 4],
+  [[hz.C3, hz.G3, hz.C4], 7],
+  [[hz.F3, hz.C4, hz.F4], 10],
+  [[hz.F3, hz.A3, hz.C4], 13],
+  [[hz.Bb3, hz.F4, hz.Bb4], 16], 
+  [[hz.F3, hz.C4, hz.A4], 19],
+  [[hz.C3, hz.G3, hz.E4], 21],
+  [[hz.F2, hz.C3, hz.F3, hz.A3, hz.C4], 22] 
+];
+
+function playMusicBoxNote(freq, startTime, isChordNote = false) {
+  const osc1 = ctxAudio.createOscillator();
+  const osc2 = ctxAudio.createOscillator();
+  const gain1 = ctxAudio.createGain();
+  const gain2 = ctxAudio.createGain();
+
+  osc1.type = 'sine';
+  osc1.frequency.value = freq;
+  
+  osc2.type = 'triangle';
+  osc2.frequency.value = freq * 2; 
+
+  const maxVol = isChordNote ? 0.15 : 0.3;
+
+  gain1.gain.setValueAtTime(0, startTime);
+  gain1.gain.linearRampToValueAtTime(maxVol, startTime + 0.02);
+  gain1.gain.setTargetAtTime(0, startTime + 0.05, 0.8); 
+
+  gain2.gain.setValueAtTime(0, startTime);
+  gain2.gain.linearRampToValueAtTime(maxVol * 0.3, startTime + 0.01);
+  gain2.gain.setTargetAtTime(0, startTime + 0.02, 0.2); 
+
+  osc1.connect(gain1).connect(ctxAudio.destination);
+  osc2.connect(gain2).connect(ctxAudio.destination);
+
+  osc1.start(startTime);
+  osc2.start(startTime);
+  osc1.stop(startTime + 4); 
+  osc2.stop(startTime + 1);
+}
+
+function playAllParts() {
+  if (ctxAudio.state === 'suspended') ctxAudio.resume();
+  
+  const beatLen = 0.65; 
+  let now = ctxAudio.currentTime + 0.2; 
+  
+  melody.forEach(([f, b]) => playMusicBoxNote(f, now + b * beatLen));
+  
+  chords.forEach(([notes, b]) => {
+    notes.forEach((f, i) => {
+      let rollDelay = i * 0.05; 
+      playMusicBoxNote(f, now + b * beatLen + rollDelay, true);
+    });
+  });
+}
+
+function initAudio(){
+  if(audioStarted) return;
+  audioStarted = true;
+  ctxAudio = new (window.AudioContext||window.webkitAudioContext)();
+  playAllParts();
+  setInterval(playAllParts, 16000); 
+}
+
+/* ======================= Canvas 初始化 ======================= */
+const canvas = document.getElementById("c");
+const ctx = canvas.getContext("2d");
+function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+resize(); window.onresize=resize;
+
+/* ======================= 草莓几何重构 ======================= */
+function drawStrawberry(x, y) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  let grad = ctx.createLinearGradient(0, -15, 0, 5);
+  grad.addColorStop(0, "#ff2a4b");
+  grad.addColorStop(1, "#b30018");
+  ctx.fillStyle = grad;
+  
+  ctx.beginPath();
+  ctx.moveTo(-8, 5); 
+  ctx.bezierCurveTo(-12, 5, -12, -5, 0, -15); 
+  ctx.bezierCurveTo(12, -5, 12, 5, 8, 5); 
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "rgba(255, 210, 120, 0.85)";
+  const seedPositions = [
+    [-4, 2], [4, 2], [0, -1], [-5, -4], [5, -4], [-2, -8], [2, -8], [0, -11]
+  ];
+  seedPositions.forEach(pos => {
+    ctx.beginPath(); ctx.arc(pos[0], pos[1], 0.8, 0, Math.PI * 2); ctx.fill();
+  });
+
+  ctx.fillStyle = "#2d8a4e";
+  ctx.beginPath();
+  ctx.moveTo(0, 5);
+  ctx.quadraticCurveTo(-10, 8, -12, 3);
+  ctx.quadraticCurveTo(-6, 3, 0, 5);
+  ctx.moveTo(0, 5);
+  ctx.quadraticCurveTo(10, 8, 12, 3);
+  ctx.quadraticCurveTo(6, 3, 0, 5);
+  ctx.moveTo(0, 5);
+  ctx.quadraticCurveTo(0, 10, -3, 12); 
+  ctx.quadraticCurveTo(2, 8, 0, 5);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/* ======================= 生日蛋糕与烛光 ======================= */
+function drawCake(){
+  const cx = canvas.width / 2;
+  const cy = canvas.height * 0.72; 
+  
+  ctx.save();
+  ctx.globalCompositeOperation = "source-over"; 
+  ctx.translate(cx, cy);
+
+  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  ctx.beginPath(); ctx.ellipse(0, 75, 140, 30, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = "#ddd";
+  ctx.beginPath(); ctx.ellipse(0,70,150,35,0,0,Math.PI*2); ctx.fill();
+
+  let cakeGrad1 = ctx.createLinearGradient(-120, 0, 120, 0);
+  cakeGrad1.addColorStop(0, "#e8c8b7");
+  cakeGrad1.addColorStop(0.5, "#ffe4d6");
+  cakeGrad1.addColorStop(1, "#d6b5a3");
+  ctx.fillStyle = cakeGrad1;
+  ctx.beginPath(); ctx.roundRect(-120,-40,240,80,25); ctx.fill();
+
+  ctx.fillStyle = "#ffcad4";
+  for(let i=-90;i<=90;i+=36){
+    ctx.beginPath(); ctx.ellipse(i,40,22,14,0,0,Math.PI*2); ctx.fill();
+  }
+
+  let cakeGrad2 = ctx.createLinearGradient(-90, 0, 90, 0);
+  cakeGrad2.addColorStop(0, "#ffe0cb");
+  cakeGrad2.addColorStop(0.5, "#fff2e8");
+  cakeGrad2.addColorStop(1, "#e6ccba");
+  ctx.fillStyle = cakeGrad2;
+  ctx.beginPath(); ctx.roundRect(-90,-85,180,60,20); ctx.fill();
+
+  let candleGrad = ctx.createLinearGradient(-5, 0, 5, 0);
+  candleGrad.addColorStop(0, "#eee");
+  candleGrad.addColorStop(0.5, "#fff");
+  candleGrad.addColorStop(1, "#ccc");
+  ctx.fillStyle = candleGrad;
+  ctx.fillRect(-5, -150, 10, 60); 
+  
+  ctx.fillStyle = "#222";
+  ctx.fillRect(-1, -154, 2, 4);
+
+  [-75, -38, 0, 38, 75].forEach(x => {
+    drawStrawberry(x, -90);
+  });
+  
+  if(candlesLit){
+    let waver = (Math.random() - 0.5) * 0.8; 
+    let flicker = Math.random() * 0.15 + 0.95; 
+    
+    ctx.save();
+    ctx.translate(waver, -155); 
+
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = "rgba(255, 180, 80, 0.9)";
+    ctx.globalCompositeOperation = "lighter";
+
+    let ambientGlow = ctx.createRadialGradient(0, -6, 0, 0, -6, 40 * flicker);
+    ambientGlow.addColorStop(0, "rgba(255, 150, 20, 0.4)");
+    ambientGlow.addColorStop(1, "rgba(255, 80, 0, 0)");
+    ctx.fillStyle = ambientGlow;
+    ctx.beginPath(); ctx.arc(0, -6, 40 * flicker, 0, Math.PI*2); ctx.fill();
+
+    let grd = ctx.createRadialGradient(0, -6 * flicker, 0.5, 0, -6 * flicker, 10 * flicker);
+    grd.addColorStop(0, "rgba(255, 255, 255, 1)");   
+    grd.addColorStop(0.4, "rgba(255, 220, 60, 0.9)"); 
+    grd.addColorStop(1, "rgba(255, 60, 0, 0)");       
+    
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.moveTo(0, 0); 
+    ctx.quadraticCurveTo(5 * flicker, -8 * flicker, 0, -20 * flicker); 
+    ctx.quadraticCurveTo(-5 * flicker, -8 * flicker, 0, 0); 
+    ctx.fill();
+
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+/* ======================= Canvas 文本显示 ======================= */
+let tipOpacity = 1;
+function drawText(){
+  ctx.save();
+  ctx.globalCompositeOperation = "source-over"; 
+  if(!candlesLit){
+    ctx.fillStyle = "white";
+    ctx.font = "48px 'Cooper Black', sans-serif"; 
+    ctx.textAlign = "center";
+    ctx.fillText("Happy Birthyear Zari", canvas.width/2, canvas.height*0.25);
+
+    ctx.fillStyle = `rgba(255,255,255,${tipOpacity})`;
+    ctx.font = "20px 'Times New Roman', serif";
+    ctx.fillText("click to light on candles", canvas.width/2, canvas.height*0.88);
+  }
+  ctx.restore();
+}
+
+/* ======================= 点击交互 ======================= */
+document.body.addEventListener("click", () => {
+  if(!candlesLit){
+    candlesLit = true; 
+    initAudio();
+    
+    let fade = setInterval(() => {
+      tipOpacity -= 0.05;
+      if(tipOpacity <= 0) clearInterval(fade);
+    }, 40);
+
+    setTimeout(() => {
+      document.getElementById("letter-box").classList.add("visible");
+    }, 1800);
+  }
+});
+
+/* ======================= 原理方程数学映射 ======================= */
+let tLorenz = 0;
+
+const pastelColors = [
+  "rgba(255, 185, 205, 0.7)", 
+  "rgba(185, 210, 255, 0.7)", 
+  "rgba(215, 195, 255, 0.7)", 
+  "rgba(255, 245, 210, 0.7)"  
+];
+
+function drawLorenzData() {
+  ctx.save();
+  ctx.translate(canvas.width / 2, canvas.height / 2 - 50);
+  ctx.scale(2.2, 2.2); // 放大渲染域以匹配全局视口
+  ctx.globalCompositeOperation = "lighter";
+
+  // 直接在内生解算环节进行离散分色，不引入冗余几何矩阵
+  let a = (y, i) => {
+    let d = Math.hypot(k = (y < 9 ? 4 + Math.sin(y**8)*9 : y/4 + Math.cos(y)) * Math.cos(i), e = y/6 - 13) + Math.cos(i/1199)/2;
+    let q = y * k / d * (2 + Math.sin(d * 2 + y - tLorenz * 16)) + 79;
+    let c = d / 6 - tLorenz + (i & 5);
+    let px = q * Math.cos(c);
+    let py = q * d / 9 * Math.sin(c + (i % 2) * 7);
+    
+    // (i & 5) 提取原方程自带的 4 象限对称因子，精确建立四色哈希映射
+    let branch = i & 5;
+    let colorIdx = branch === 0 ? 0 : branch === 1 ? 1 : branch === 4 ? 2 : 3;
+    
+    ctx.fillStyle = pastelColors[colorIdx];
+    ctx.fillRect(px, py, 0.6, 0.6);
+  };
+
+  for (let i = 20000; i--;) a(i / 980, i);
+  tLorenz += Math.PI / 480;
+  
+  ctx.restore();
+}
+
+/* ======================= 主动画循环 ======================= */
+function animate(){
+  ctx.fillStyle = "rgba(4, 4, 6, 0.35)"; 
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawLorenzData();
+  drawCake();
+  drawText();
+
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>
