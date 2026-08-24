@@ -1,382 +1,563 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Happy Birthday Zari</title>
-<style>
-  html, body { 
-    margin: 0; 
-    padding: 0; 
-    overflow: hidden; 
-    background: #050508; 
-    font-family: 'Times New Roman', serif;
-  }
-  canvas { display: block; }
-  
-  #letter-box {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -40%);
-    width: 85%;
-    max-width: 650px;
-    background: rgba(10, 10, 15, 0.65);
-    backdrop-filter: blur(8px); 
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 40px 50px;
-    color: rgba(255, 255, 255, 0.95);
-    line-height: 1.8;
-    font-size: 17px;
-    text-align: left;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
-    z-index: 9999; 
-    
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 3s ease-in-out, transform 3s ease-out;
-  }
-  
-  #letter-box.visible {
-    opacity: 1;
-    transform: translate(-50%, -50%);
-    pointer-events: auto;
-  }
+  <head>
+    <meta charset="UTF-8" />
+    <title>Happy Birthday Zari</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        background: #050508;
+        font-family: "Times New Roman", serif;
+      }
+      canvas {
+        display: block;
+      }
 
-  #letter-box p { margin-bottom: 20px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-  #letter-box .greeting {
-    font-family: 'Cooper Black', serif;
-    font-size: 28px;
-    color: #ffd7dd;
-    margin-bottom: 25px;
-  }
-  .signature {
-    text-align: right;
-    font-family: 'Cooper Black', serif;
-    font-size: 20px;
-    color: #ffcad4;
-    margin-top: 30px;
-  }
-</style>
-</head>
-<body>
+      #letter-box {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -40%);
+        width: 85%;
+        max-width: 650px;
+        background: rgba(10, 10, 15, 0.65);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 40px 50px;
+        color: rgba(255, 255, 255, 0.95);
+        line-height: 1.8;
+        font-size: 17px;
+        text-align: left;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.9);
+        z-index: 9999;
 
-<canvas id="c"></canvas>
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 3s ease-in-out, transform 3s ease-out;
+      }
 
-<div id="letter-box">
-  <div class="greeting">Zari,</div>
-  <p>xxxx</p>
-  <div class="signature">— Defei</div>
-</div>
+      #letter-box.visible {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+        pointer-events: auto;
+      }
 
-<script>
-/* ======================= 八音盒音频引擎 ======================= */
-let candlesLit = false, audioStarted = false;
-let ctxAudio; 
+      #letter-box p {
+        margin-bottom: 20px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+      }
+      #letter-box .greeting {
+        font-family: "Cooper Black", serif;
+        font-size: 28px;
+        color: #ffd7dd;
+        margin-bottom: 25px;
+      }
+      .signature {
+        text-align: right;
+        font-family: "Cooper Black", serif;
+        font-size: 20px;
+        color: #ffcad4;
+        margin-top: 30px;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
 
-const hz = {
-  F2: 87.3, C3: 130.8, F3: 174.6, G3: 196.0, A3: 220.0, Bb3: 233.1,
-  C4: 261.6, D4: 293.7, E4: 329.6, F4: 349.2, G4: 392.0, A4: 440.0, Bb4: 466.2, B4: 493.9,
-  C5: 523.3, D5: 587.3, E5: 659.3, F5: 698.5, G5: 784.0, A5: 880.0, Bb5: 932.3, C6: 1046.5
-};
+    <div id="letter-box">
+      <div class="greeting">Zari,</div>
+      <p>ha</p>
 
-const melody = [
-  [hz.C5, 0, 0.75], [hz.C5, 0.75, 0.25], 
-  [hz.D5, 1, 1],    [hz.C5, 2, 1],    [hz.F5, 3, 1], 
-  [hz.E5, 4, 2], 
-  [hz.C5, 6, 0.75], [hz.C5, 6.75, 0.25], 
-  [hz.D5, 7, 1],    [hz.C5, 8, 1],    [hz.G5, 9, 1], 
-  [hz.F5, 10, 2], 
-  [hz.C5, 12, 0.75], [hz.C5, 12.75, 0.25], 
-  [hz.C6, 13, 1],   [hz.A5, 14, 1],   [hz.F5, 15, 1], 
-  [hz.E5, 16, 1],   [hz.D5, 17, 1], 
-  [hz.Bb5, 18, 0.75], [hz.Bb5, 18.75, 0.25], 
-  [hz.A5, 19, 1],   [hz.F5, 20, 1],   [hz.G5, 21, 1], 
-  [hz.F5, 22, 3] 
-];
+      <div class="signature">— Defei</div>
+    </div>
 
-const chords = [
-  [[hz.F3, hz.C4, hz.F4], 1],
-  [[hz.C3, hz.G3, hz.E4], 4],
-  [[hz.C3, hz.G3, hz.C4], 7],
-  [[hz.F3, hz.C4, hz.F4], 10],
-  [[hz.F3, hz.A3, hz.C4], 13],
-  [[hz.Bb3, hz.F4, hz.Bb4], 16], 
-  [[hz.F3, hz.C4, hz.A4], 19],
-  [[hz.C3, hz.G3, hz.E4], 21],
-  [[hz.F2, hz.C3, hz.F3, hz.A3, hz.C4], 22] 
-];
+    <script>
+      /* ======================= 八音盒音频引擎 ======================= */
+      let candlesLit = false,
+        audioStarted = false;
+      let ctxAudio, masterGain;
+      let activeOscillators = [];
+      let loopTimer = null;
 
-function playMusicBoxNote(freq, startTime, isChordNote = false) {
-  const osc1 = ctxAudio.createOscillator();
-  const osc2 = ctxAudio.createOscillator();
-  const gain1 = ctxAudio.createGain();
-  const gain2 = ctxAudio.createGain();
+      // 你指定的参数配置字典
+      // 你指定的参数配置字典 (已优化)
+      const SYNTH_CONFIG = {
+        volFund: 0.85, // 稍微提高基频，让声音更暖
+        detuneCents: 8, // 降低一点失谐，减少走音感
+        attackGain: 0, // (废弃)
+        decayTime: 2.2, // 缩短延音，解决整体嗡嗡声
+        overtones: [
+          { ratio: 2.0, vol: 0.08 }, // 泛音一，少量高八度
+          { ratio: 3.0, vol: 0.02 }, // 泛音二，极少量十二度增加色彩
+        ],
+      };
 
-  osc1.type = 'sine';
-  osc1.frequency.value = freq;
-  
-  osc2.type = 'triangle';
-  osc2.frequency.value = freq * 2; 
+      // 补全了低音域的 hz 对象
+      const hz = {
+        F1: 43.6,
+        C2: 65.4,
+        F2: 87.3,
+        G2: 98.0,
+        A2: 110.0,
+        Bb2: 116.5,
+        C3: 130.8,
+        E3: 164.8,
+        F3: 174.6,
+        G3: 196.0,
+        A3: 220.0,
+        Bb3: 233.1,
+        C4: 261.6,
+        D4: 293.7,
+        E4: 329.6,
+        F4: 349.2,
+        G4: 392.0,
+        A4: 440.0,
+        Bb4: 466.2,
+        B4: 493.9,
+        C5: 523.3,
+        D5: 587.3,
+        E5: 659.3,
+        F5: 698.5,
+        G5: 784.0,
+        A5: 880.0,
+        Bb5: 932.3,
+        C6: 1046.5,
+      };
 
-  const maxVol = isChordNote ? 0.15 : 0.3;
+      const melody = [
+        [hz.C5, 0, 0.75],
+        [hz.C5, 0.75, 0.25],
+        [hz.D5, 1, 1],
+        [hz.C5, 2, 1],
+        [hz.F5, 3, 1],
+        [hz.E5, 4, 2],
+        [hz.C5, 6, 0.75],
+        [hz.C5, 6.75, 0.25],
+        [hz.D5, 7, 1],
+        [hz.C5, 8, 1],
+        [hz.G5, 9, 1],
+        [hz.F5, 10, 2],
+        [hz.C5, 12, 0.75],
+        [hz.C5, 12.75, 0.25],
+        [hz.C6, 13, 1],
+        [hz.A5, 14, 1],
+        [hz.F5, 15, 1],
+        [hz.E5, 16, 1],
+        [hz.D5, 17, 1],
+        [hz.Bb5, 18, 0.75],
+        [hz.Bb5, 18.75, 0.25],
+        [hz.A5, 19, 1],
+        [hz.F5, 20, 1],
+        [hz.G5, 21, 1],
+        [hz.F5, 22, 3],
+      ];
 
-  gain1.gain.setValueAtTime(0, startTime);
-  gain1.gain.linearRampToValueAtTime(maxVol, startTime + 0.02);
-  gain1.gain.setTargetAtTime(0, startTime + 0.05, 0.8); 
+      const chords = [
+        [[hz.F2, hz.C3, hz.F3, hz.A3], 1],
+        [[hz.C2, hz.G2, hz.C3, hz.E3], 4],
+        [[hz.C2, hz.G2, hz.C3, hz.E3], 7],
+        [[hz.F2, hz.C3, hz.A3, hz.C4], 10],
+        [[hz.F2, hz.A2, hz.C3, hz.F3], 13],
+        [[hz.Bb2, hz.F3, hz.Bb3, hz.D4], 16],
+        [[hz.F2, hz.C3, hz.F3, hz.A3], 19],
+        [[hz.C2, hz.G2, hz.C3, hz.E3], 21],
+        [[hz.F1, hz.C2, hz.F2, hz.A2, hz.C3, hz.F3, hz.A3, hz.C4], 22],
+      ];
 
-  gain2.gain.setValueAtTime(0, startTime);
-  gain2.gain.linearRampToValueAtTime(maxVol * 0.3, startTime + 0.01);
-  gain2.gain.setTargetAtTime(0, startTime + 0.02, 0.2); 
+      function initAudio() {
+        if (audioStarted) return;
+        audioStarted = true;
+        ctxAudio = new (window.AudioContext || window.webkitAudioContext)();
 
-  osc1.connect(gain1).connect(ctxAudio.destination);
-  osc2.connect(gain2).connect(ctxAudio.destination);
+        const compressor = ctxAudio.createDynamicsCompressor();
+        compressor.threshold.value = -24; // 阈值调低，更早介入压限
+        compressor.ratio.value = 8; // 压缩比调大，死死压住爆音
 
-  osc1.start(startTime);
-  osc2.start(startTime);
-  osc1.stop(startTime + 4); 
-  osc2.stop(startTime + 1);
-}
+        masterGain = ctxAudio.createGain();
+        masterGain.gain.value = 0.2; // 【修改点】：总音量降到 0.2，彻底消除 Cracky 电流声
 
-function playAllParts() {
-  if (ctxAudio.state === 'suspended') ctxAudio.resume();
-  
-  const beatLen = 0.65; 
-  let now = ctxAudio.currentTime + 0.2; 
-  
-  melody.forEach(([f, b]) => playMusicBoxNote(f, now + b * beatLen));
-  
-  chords.forEach(([notes, b]) => {
-    notes.forEach((f, i) => {
-      let rollDelay = i * 0.05; 
-      playMusicBoxNote(f, now + b * beatLen + rollDelay, true);
-    });
-  });
-}
+        masterGain.connect(compressor);
+        compressor.connect(ctxAudio.destination);
 
-function initAudio(){
-  if(audioStarted) return;
-  audioStarted = true;
-  ctxAudio = new (window.AudioContext||window.webkitAudioContext)();
-  playAllParts();
-  setInterval(playAllParts, 16000); 
-}
+        playAllParts();
+      }
 
-/* ======================= Canvas 初始化 ======================= */
-const canvas = document.getElementById("c");
-const ctx = canvas.getContext("2d");
-function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
-resize(); window.onresize=resize;
+      function playEngineNote(freq, startTime, isBass = false) {
+        // 【修改点】：低频延音必须比主旋律更短（0.6倍），低音才不会嗡嗡作响
+        const duration = isBass
+          ? SYNTH_CONFIG.decayTime * 0.6
+          : SYNTH_CONFIG.decayTime;
+        // 低音音量进一步下调，把频段让给旋律
+        const volScale = isBass ? 0.35 : 1.0;
 
-/* ======================= 草莓几何重构 ======================= */
-function drawStrawberry(x, y) {
-  ctx.save();
-  ctx.translate(x, y);
+        const envNode = ctxAudio.createGain();
+        envNode.gain.setValueAtTime(0, startTime);
+        // 【修改点】：使用 linearRamp 建立 0.02 秒的平滑起音，完美切断音符开头的爆裂声
+        envNode.gain.linearRampToValueAtTime(1.0 * volScale, startTime + 0.02);
+        envNode.gain.setTargetAtTime(0, startTime + 0.03, duration / 3);
 
-  let grad = ctx.createLinearGradient(0, -15, 0, 5);
-  grad.addColorStop(0, "#ff2a4b");
-  grad.addColorStop(1, "#b30018");
-  ctx.fillStyle = grad;
-  
-  ctx.beginPath();
-  ctx.moveTo(-8, 5); 
-  ctx.bezierCurveTo(-12, 5, -12, -5, 0, -15); 
-  ctx.bezierCurveTo(12, -5, 12, 5, 8, 5); 
-  ctx.closePath();
-  ctx.fill();
+        envNode.connect(masterGain);
 
-  ctx.fillStyle = "rgba(255, 210, 120, 0.85)";
-  const seedPositions = [
-    [-4, 2], [4, 2], [0, -1], [-5, -4], [5, -4], [-2, -8], [2, -8], [0, -11]
-  ];
-  seedPositions.forEach(pos => {
-    ctx.beginPath(); ctx.arc(pos[0], pos[1], 0.8, 0, Math.PI * 2); ctx.fill();
-  });
+        const createOsc = (f, vol, type = "sine", detune = 0) => {
+          if (vol <= 0) return;
+          const osc = ctxAudio.createOscillator();
+          const g = ctxAudio.createGain();
+          osc.type = type;
+          osc.frequency.value = f;
+          osc.detune.value = detune;
+          g.gain.value = vol;
+          osc.connect(g).connect(envNode);
+          osc.start(startTime);
+          osc.stop(startTime + duration + 1);
+          activeOscillators.push(osc);
+        };
 
-  ctx.fillStyle = "#2d8a4e";
-  ctx.beginPath();
-  ctx.moveTo(0, 5);
-  ctx.quadraticCurveTo(-10, 8, -12, 3);
-  ctx.quadraticCurveTo(-6, 3, 0, 5);
-  ctx.moveTo(0, 5);
-  ctx.quadraticCurveTo(10, 8, 12, 3);
-  ctx.quadraticCurveTo(6, 3, 0, 5);
-  ctx.moveTo(0, 5);
-  ctx.quadraticCurveTo(0, 10, -3, 12); 
-  ctx.quadraticCurveTo(2, 8, 0, 5);
-  ctx.fill();
+        createOsc(freq, SYNTH_CONFIG.volFund);
+        createOsc(
+          freq,
+          SYNTH_CONFIG.volFund * 0.5,
+          "sine",
+          SYNTH_CONFIG.detuneCents
+        );
 
-  ctx.restore();
-}
+        SYNTH_CONFIG.overtones.forEach((ot) => {
+          createOsc(freq * ot.ratio, ot.vol);
+        });
 
-/* ======================= 生日蛋糕与烛光 ======================= */
-function drawCake(){
-  const cx = canvas.width / 2;
-  const cy = canvas.height * 0.72; 
-  
-  ctx.save();
-  ctx.globalCompositeOperation = "source-over"; 
-  ctx.translate(cx, cy);
+        // 【修改点】：直接删除了产生奇怪高频泛音的 Triangle attackGain 代码块
+      }
+      function playAllParts() {
+        if (ctxAudio.state === "suspended") ctxAudio.resume();
 
-  ctx.fillStyle = "rgba(0,0,0,0.6)";
-  ctx.beginPath(); ctx.ellipse(0, 75, 140, 30, 0, 0, Math.PI*2); ctx.fill();
+        // 彻底阻断旧线程残留
+        activeOscillators.forEach((osc) => {
+          try {
+            osc.stop();
+          } catch (e) {}
+        });
+        activeOscillators = [];
 
-  ctx.fillStyle = "#ddd";
-  ctx.beginPath(); ctx.ellipse(0,70,150,35,0,0,Math.PI*2); ctx.fill();
+        const beatLen = 0.68;
+        let now = ctxAudio.currentTime + 0.2;
 
-  let cakeGrad1 = ctx.createLinearGradient(-120, 0, 120, 0);
-  cakeGrad1.addColorStop(0, "#e8c8b7");
-  cakeGrad1.addColorStop(0.5, "#ffe4d6");
-  cakeGrad1.addColorStop(1, "#d6b5a3");
-  ctx.fillStyle = cakeGrad1;
-  ctx.beginPath(); ctx.roundRect(-120,-40,240,80,25); ctx.fill();
+        melody.forEach(([f, b]) => playEngineNote(f, now + b * beatLen, false));
 
-  ctx.fillStyle = "#ffcad4";
-  for(let i=-90;i<=90;i+=36){
-    ctx.beginPath(); ctx.ellipse(i,40,22,14,0,0,Math.PI*2); ctx.fill();
-  }
+        chords.forEach(([notes, b]) => {
+          notes.forEach((f, i) => {
+            let rollDelay = i * 0.06;
+            playEngineNote(f, now + b * beatLen + rollDelay, true);
+          });
+        });
 
-  let cakeGrad2 = ctx.createLinearGradient(-90, 0, 90, 0);
-  cakeGrad2.addColorStop(0, "#ffe0cb");
-  cakeGrad2.addColorStop(0.5, "#fff2e8");
-  cakeGrad2.addColorStop(1, "#e6ccba");
-  ctx.fillStyle = cakeGrad2;
-  ctx.beginPath(); ctx.roundRect(-90,-85,180,60,20); ctx.fill();
+        loopTimer = setTimeout(playAllParts, 24 * beatLen * 1000 + 2000);
+      }
 
-  let candleGrad = ctx.createLinearGradient(-5, 0, 5, 0);
-  candleGrad.addColorStop(0, "#eee");
-  candleGrad.addColorStop(0.5, "#fff");
-  candleGrad.addColorStop(1, "#ccc");
-  ctx.fillStyle = candleGrad;
-  ctx.fillRect(-5, -150, 10, 60); 
-  
-  ctx.fillStyle = "#222";
-  ctx.fillRect(-1, -154, 2, 4);
+      /* ======================= Canvas 初始化 ======================= */
+      const canvas = document.getElementById("c");
+      const ctx = canvas.getContext("2d");
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+      window.onresize = resize;
 
-  [-75, -38, 0, 38, 75].forEach(x => {
-    drawStrawberry(x, -90);
-  });
-  
-  if(candlesLit){
-    let waver = (Math.random() - 0.5) * 0.8; 
-    let flicker = Math.random() * 0.15 + 0.95; 
-    
-    ctx.save();
-    ctx.translate(waver, -155); 
+      /* ======================= 草莓几何重构 ======================= */
+      function drawStrawberry(x, y) {
+        ctx.save();
+        ctx.translate(x, y);
 
-    ctx.shadowBlur = 12;
-    ctx.shadowColor = "rgba(255, 180, 80, 0.9)";
-    ctx.globalCompositeOperation = "lighter";
+        let grad = ctx.createLinearGradient(0, -15, 0, 5);
+        grad.addColorStop(0, "#ff2a4b");
+        grad.addColorStop(1, "#b30018");
+        ctx.fillStyle = grad;
 
-    let ambientGlow = ctx.createRadialGradient(0, -6, 0, 0, -6, 40 * flicker);
-    ambientGlow.addColorStop(0, "rgba(255, 150, 20, 0.4)");
-    ambientGlow.addColorStop(1, "rgba(255, 80, 0, 0)");
-    ctx.fillStyle = ambientGlow;
-    ctx.beginPath(); ctx.arc(0, -6, 40 * flicker, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(-8, 5);
+        ctx.bezierCurveTo(-12, 5, -12, -5, 0, -15);
+        ctx.bezierCurveTo(12, -5, 12, 5, 8, 5);
+        ctx.closePath();
+        ctx.fill();
 
-    let grd = ctx.createRadialGradient(0, -6 * flicker, 0.5, 0, -6 * flicker, 10 * flicker);
-    grd.addColorStop(0, "rgba(255, 255, 255, 1)");   
-    grd.addColorStop(0.4, "rgba(255, 220, 60, 0.9)"); 
-    grd.addColorStop(1, "rgba(255, 60, 0, 0)");       
-    
-    ctx.fillStyle = grd;
-    ctx.beginPath();
-    ctx.moveTo(0, 0); 
-    ctx.quadraticCurveTo(5 * flicker, -8 * flicker, 0, -20 * flicker); 
-    ctx.quadraticCurveTo(-5 * flicker, -8 * flicker, 0, 0); 
-    ctx.fill();
+        ctx.fillStyle = "rgba(255, 210, 120, 0.85)";
+        const seedPositions = [
+          [-4, 2],
+          [4, 2],
+          [0, -1],
+          [-5, -4],
+          [5, -4],
+          [-2, -8],
+          [2, -8],
+          [0, -11],
+        ];
+        seedPositions.forEach((pos) => {
+          ctx.beginPath();
+          ctx.arc(pos[0], pos[1], 0.8, 0, Math.PI * 2);
+          ctx.fill();
+        });
 
-    ctx.restore();
-  }
-  ctx.restore();
-}
+        ctx.fillStyle = "#2d8a4e";
+        ctx.beginPath();
+        ctx.moveTo(0, 5);
+        ctx.quadraticCurveTo(-10, 8, -12, 3);
+        ctx.quadraticCurveTo(-6, 3, 0, 5);
+        ctx.moveTo(0, 5);
+        ctx.quadraticCurveTo(10, 8, 12, 3);
+        ctx.quadraticCurveTo(6, 3, 0, 5);
+        ctx.moveTo(0, 5);
+        ctx.quadraticCurveTo(0, 10, -3, 12);
+        ctx.quadraticCurveTo(2, 8, 0, 5);
+        ctx.fill();
 
-/* ======================= Canvas 文本显示 ======================= */
-let tipOpacity = 1;
-function drawText(){
-  ctx.save();
-  ctx.globalCompositeOperation = "source-over"; 
-  if(!candlesLit){
-    ctx.fillStyle = "white";
-    ctx.font = "48px 'Cooper Black', sans-serif"; 
-    ctx.textAlign = "center";
-    ctx.fillText("Happy Birthday Zari", canvas.width/2, canvas.height*0.25);
+        ctx.restore();
+      }
 
-    ctx.fillStyle = `rgba(255,255,255,${tipOpacity})`;
-    ctx.font = "20px 'Times New Roman', serif";
-    ctx.fillText("click to light on candles", canvas.width/2, canvas.height*0.88);
-  }
-  ctx.restore();
-}
+      /* ======================= 生日蛋糕与烛光 ======================= */
+      function drawCake() {
+        const cx = canvas.width / 2;
+        const cy = canvas.height * 0.72;
 
-/* ======================= 点击交互 ======================= */
-document.body.addEventListener("click", () => {
-  if(!candlesLit){
-    candlesLit = true; 
-    initAudio();
-    
-    let fade = setInterval(() => {
-      tipOpacity -= 0.05;
-      if(tipOpacity <= 0) clearInterval(fade);
-    }, 40);
+        ctx.save();
+        ctx.globalCompositeOperation = "source-over";
+        ctx.translate(cx, cy);
 
-    setTimeout(() => {
-      document.getElementById("letter-box").classList.add("visible");
-    }, 1800);
-  }
-});
+        // ---------- 一体化平滑高脚托盘 ----------
+        // 地面柔和阴影
+        ctx.fillStyle = "rgba(0, 0, 0, 0.22)";
+        ctx.beginPath();
+        ctx.ellipse(0, 77, 75, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-/* ======================= 原理方程数学映射 ======================= */
-let tLorenz = 0;
+        // 瓷质渐变一体化托盘主体
+        let standGrad = ctx.createLinearGradient(-150, 0, 150, 0);
+        standGrad.addColorStop(0, "#d8dae2");
+        standGrad.addColorStop(0.3, "#f6f7fb");
+        standGrad.addColorStop(0.7, "#ffffff");
+        standGrad.addColorStop(1, "#cfd1dc");
+        ctx.fillStyle = standGrad;
 
-const pastelColors = [
-  "rgba(255, 185, 205, 0.7)", 
-  "rgba(185, 210, 255, 0.7)", 
-  "rgba(215, 195, 255, 0.7)", 
-  "rgba(255, 245, 210, 0.7)"  
-];
+        ctx.beginPath();
+        ctx.moveTo(-150, 48);
+        ctx.quadraticCurveTo(-152, 54, -135, 55);
+        ctx.bezierCurveTo(-75, 56, -32, 58, -22, 66);
+        ctx.quadraticCurveTo(-24, 72, -55, 75);
+        ctx.lineTo(-55, 77);
+        ctx.quadraticCurveTo(0, 78, 55, 77);
+        ctx.lineTo(55, 75);
+        ctx.quadraticCurveTo(24, 72, 22, 66);
+        ctx.bezierCurveTo(32, 58, 75, 56, 135, 55);
+        ctx.quadraticCurveTo(152, 54, 150, 48);
+        ctx.lineTo(-150, 48); // 笔直封顶防走光
+        ctx.closePath();
+        ctx.fill();
 
-function drawLorenzData() {
-  ctx.save();
-  ctx.translate(canvas.width / 2, canvas.height / 2 - 50);
-  ctx.scale(2.2, 2.2); // 放大渲染域以匹配全局视口
-  ctx.globalCompositeOperation = "lighter";
+        // 盘面顶部反光边缘细线
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(-148, 49);
+        ctx.lineTo(148, 49);
+        ctx.stroke();
 
-  // 直接在内生解算环节进行离散分色，不引入冗余几何矩阵
-  let a = (y, i) => {
-    let d = Math.hypot(k = (y < 9 ? 4 + Math.sin(y**8)*9 : y/4 + Math.cos(y)) * Math.cos(i), e = y/6 - 13) + Math.cos(i/1199)/2;
-    let q = y * k / d * (2 + Math.sin(d * 2 + y - tLorenz * 16)) + 79;
-    let c = d / 6 - tLorenz + (i & 5);
-    let px = q * Math.cos(c);
-    let py = q * d / 9 * Math.sin(c + (i % 2) * 7);
-    
-    // (i & 5) 提取原方程自带的 4 象限对称因子，精确建立四色哈希映射
-    let branch = i & 5;
-    let colorIdx = branch === 0 ? 0 : branch === 1 ? 1 : branch === 4 ? 2 : 3;
-    
-    ctx.fillStyle = pastelColors[colorIdx];
-    ctx.fillRect(px, py, 0.6, 0.6);
-  };
+        // ---------- 下层蛋糕主体 ----------
+        let cakeGrad1 = ctx.createLinearGradient(-120, 0, 120, 0);
+        cakeGrad1.addColorStop(0, "#e8c8b7");
+        cakeGrad1.addColorStop(0.5, "#ffe4d6");
+        cakeGrad1.addColorStop(1, "#d6b5a3");
+        ctx.fillStyle = cakeGrad1;
+        ctx.beginPath();
+        // 宽度略微收窄，高度加深至底部 52，完美填补奶油球缝隙
+        ctx.roundRect(-115, -40, 230, 92, 15);
+        ctx.fill();
 
-  for (let i = 20000; i--;) a(i / 980, i);
-  tLorenz += Math.PI / 480;
-  
-  ctx.restore();
-}
+        // ---------- 奶油圈边缘 ----------
+        ctx.fillStyle = "#ffcad4";
+        // 扩展循环区间为 7 个奶油球，完美包裹侧边
+        for (let i = -108; i <= 108; i += 36) {
+          ctx.beginPath();
+          ctx.ellipse(i, 40, 22, 14, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
 
-/* ======================= 主动画循环 ======================= */
-function animate(){
-  ctx.fillStyle = "rgba(4, 4, 6, 0.35)"; 
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // ---------- 上层蛋糕主体 ----------
+        let cakeGrad2 = ctx.createLinearGradient(-90, 0, 90, 0);
+        cakeGrad2.addColorStop(0, "#ffe0cb");
+        cakeGrad2.addColorStop(0.5, "#fff2e8");
+        cakeGrad2.addColorStop(1, "#e6ccba");
+        ctx.fillStyle = cakeGrad2;
+        ctx.beginPath();
+        ctx.roundRect(-90, -85, 180, 60, 20);
+        ctx.fill();
 
-  drawLorenzData();
-  drawCake();
-  drawText();
+        // 蜡烛本体
+        let candleGrad = ctx.createLinearGradient(-5, 0, 5, 0);
+        candleGrad.addColorStop(0, "#eee");
+        candleGrad.addColorStop(0.5, "#fff");
+        candleGrad.addColorStop(1, "#ccc");
+        ctx.fillStyle = candleGrad;
+        ctx.fillRect(-5, -150, 10, 60);
 
-  requestAnimationFrame(animate);
-}
-animate();
-</script>
-</body>
+        ctx.fillStyle = "#222";
+        ctx.fillRect(-1, -154, 2, 4);
+
+        [-75, -38, 0, 38, 75].forEach((x) => {
+          drawStrawberry(x, -90);
+        });
+
+        if (candlesLit) {
+          let waver = (Math.random() - 0.5) * 0.8;
+          let flicker = Math.random() * 0.15 + 0.95;
+
+          ctx.save();
+          ctx.translate(waver, -155);
+
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = "rgba(255, 180, 80, 0.9)";
+          ctx.globalCompositeOperation = "lighter";
+
+          let ambientGlow = ctx.createRadialGradient(
+            0,
+            -6,
+            0,
+            0,
+            -6,
+            40 * flicker
+          );
+          ambientGlow.addColorStop(0, "rgba(255, 150, 20, 0.4)");
+          ambientGlow.addColorStop(1, "rgba(255, 80, 0, 0)");
+          ctx.fillStyle = ambientGlow;
+          ctx.beginPath();
+          ctx.arc(0, -6, 40 * flicker, 0, Math.PI * 2);
+          ctx.fill();
+
+          let grd = ctx.createRadialGradient(
+            0,
+            -6 * flicker,
+            0.5,
+            0,
+            -6 * flicker,
+            10 * flicker
+          );
+          grd.addColorStop(0, "rgba(255, 255, 255, 1)");
+          grd.addColorStop(0.4, "rgba(255, 220, 60, 0.9)");
+          grd.addColorStop(1, "rgba(255, 60, 0, 0)");
+
+          ctx.fillStyle = grd;
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.quadraticCurveTo(5 * flicker, -8 * flicker, 0, -20 * flicker);
+          ctx.quadraticCurveTo(-5 * flicker, -8 * flicker, 0, 0);
+          ctx.fill();
+
+          ctx.restore();
+        }
+        ctx.restore();
+      }
+
+      /* ======================= Canvas 文本显示 ======================= */
+      let tipOpacity = 1;
+      function drawText() {
+        ctx.save();
+        ctx.globalCompositeOperation = "source-over";
+        if (!candlesLit) {
+          ctx.fillStyle = "white";
+          ctx.font = "48px 'Cooper Black', sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText(
+            "Happy Birthday Zari",
+            canvas.width / 2,
+            canvas.height * 0.25
+          );
+
+          ctx.fillStyle = `rgba(255,255,255,${tipOpacity})`;
+          ctx.font = "20px 'Times New Roman', serif";
+          ctx.fillText(
+            "click to light on candles",
+            canvas.width / 2,
+            canvas.height * 0.88
+          );
+        }
+        ctx.restore();
+      }
+
+      /* ======================= 点击交互 ======================= */
+      document.body.addEventListener("click", () => {
+        if (!candlesLit) {
+          candlesLit = true;
+          initAudio();
+
+          let fade = setInterval(() => {
+            tipOpacity -= 0.05;
+            if (tipOpacity <= 0) clearInterval(fade);
+          }, 40);
+
+          setTimeout(() => {
+            document.getElementById("letter-box").classList.add("visible");
+          }, 1800);
+        }
+      });
+
+      /* ======================= 原理方程数学映射 ======================= */
+      let tLorenz = 0;
+
+      const pastelColors = [
+        "rgba(255, 185, 205, 0.7)",
+        "rgba(185, 210, 255, 0.7)",
+        "rgba(215, 195, 255, 0.7)",
+        "rgba(255, 245, 210, 0.7)",
+      ];
+
+      function drawLorenzData() {
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2 - 50);
+        ctx.scale(2.2, 2.2);
+        ctx.globalCompositeOperation = "lighter";
+
+        let a = (y, i) => {
+          let d =
+            Math.hypot(
+              (k =
+                (y < 9 ? 4 + Math.sin(y ** 8) * 9 : y / 4 + Math.cos(y)) *
+                Math.cos(i)),
+              (e = y / 6 - 13)
+            ) +
+            Math.cos(i / 1199) / 2;
+          let q = ((y * k) / d) * (2 + Math.sin(d * 2 + y - tLorenz * 16)) + 79;
+          let c = d / 6 - tLorenz + (i & 5);
+          let px = q * Math.cos(c);
+          let py = ((q * d) / 9) * Math.sin(c + (i % 2) * 7);
+
+          let branch = i & 5;
+          let colorIdx =
+            branch === 0 ? 0 : branch === 1 ? 1 : branch === 4 ? 2 : 3;
+
+          ctx.fillStyle = pastelColors[colorIdx];
+          ctx.fillRect(px, py, 0.6, 0.6);
+        };
+
+        for (let i = 20000; i--; ) a(i / 980, i);
+        tLorenz += Math.PI / 480;
+
+        ctx.restore();
+      }
+
+      /* ======================= 主动画循环 ======================= */
+      function animate() {
+        ctx.fillStyle = "rgba(4, 4, 6, 0.35)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        drawLorenzData();
+        drawCake();
+        drawText();
+
+        requestAnimationFrame(animate);
+      }
+      animate();
+    </script>
+  </body>
 </html>
